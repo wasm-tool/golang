@@ -1,5 +1,4 @@
-const util = require('util');
-const execFile = util.promisify(require('child_process').execFile);
+const {execFile} = require('child_process');
 const {readFileSync, writeFileSync, unlinkSync} = require('fs');
 const {join} = require('path');
 
@@ -89,20 +88,18 @@ function compileSource(source, {GOROOT}) {
     inFile
   ];
 
-  return execFile(bin, args, options)
-    .then(({stdout, stderr}) => {
+  return new Promise((resolve, reject) => execFile(bin, args, options, (stdout, stderr) => {
+    if (stderr !== '') {
+      return reject(stderr);
+    }
 
-      if (stderr !== '') {
-        throw new Error(stderr);
-      }
+    unlinkSync(inFile);
 
-      unlinkSync(inFile);
+    const out = readFileSync(outFile, null);
+    unlinkSync(outFile);
 
-      const out = readFileSync(outFile, null);
-      unlinkSync(outFile);
-
-      return out;
-    });
+    return resolve(out);
+  }));
 }
 
 module.exports = function(source) {
