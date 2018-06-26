@@ -14,6 +14,9 @@ const decoderOpts = {
   ignoreDataSection: true,
 };
 
+// const debug = msg => process.stderr.write(msg)
+const debug = msg => {}
+
 function inspect(ast) {
   const exports = [];
 
@@ -66,20 +69,19 @@ const generateUserWrapperLoader = exportNames => wasm_exec + `
 
 const getGoBin = root => `${root}/bin/go`;
 
-function compileSource(source, {GOROOT}) {
-  const inFile = 'tmp.go';
+function compileSource(source, {GOROOT, GOPATH}) {
+  const inFile = '.'; // current directory
   const outFile = 'tmp.wasm';
-
-  writeFileSync(inFile, source);
 
   const bin = getGoBin(GOROOT);
 
   const options = {
     env: {
       GOROOT,
+      GOPATH,
       GOARCH: 'wasm',
       GOOS: 'js',
-    }
+    },
   };
 
   const args = [
@@ -92,8 +94,6 @@ function compileSource(source, {GOROOT}) {
     if (stderr !== '') {
       return reject(stderr);
     }
-
-    unlinkSync(inFile);
 
     const out = readFileSync(outFile, null);
     unlinkSync(outFile);
@@ -110,17 +110,25 @@ module.exports = function(source) {
 
   compileSource(source, options)
     .then(bin => {
+      debug("preprocess")
       bin = preprocess(bin);
+      debug(" OK\n")
 
+      debug("decode")
       const ast = decode(bin, decoderOpts);
+      debug(" OK\n")
 
+      debug("transform")
       bin = transformWasm(ast, bin);
       writeFileSync('/tmp/module.wasm', new Buffer(bin));
+      debug(" OK\n")
 
+      debug("codegen")
       const info = inspect(ast);
       callback(null, generateUserWrapperLoader(info.exports));
 
       writeFileSync('/tmp/wasm-loader.js', generateWasmWrapperLoader());
+      debug(" OK\n")
     })
     .catch(e => {
       this.emitError(e)
