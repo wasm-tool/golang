@@ -2,9 +2,11 @@
 
 > Golang loader for Webpack
 
+**Experimental**
+
 ## Installation
 
-```js
+```sh
 npm i -D @wasm-tool/golang
 ```
 
