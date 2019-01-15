@@ -2,7 +2,9 @@
 
 > Golang loader for Webpack
 
-**Experimental**
+## Attention
+
+This plugin is still experimental. Golang used to generate big Wasm modules which may take time to decode.
 
 ## Installation
 
