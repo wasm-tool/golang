@@ -31,12 +31,6 @@ function inspect(ast) {
   return { exports };
 }
 
-
-function preprocess(ab) {
-  const optBin = shrinkPaddedLEB128(new Uint8Array(ab));
-  return optBin.buffer;
-}
-
 function transformWasm(ast, bin) {
   return editWithAST(ast, bin, {
     ModuleImport({node}) {
@@ -111,10 +105,6 @@ module.exports = function(source) {
 
   return compileSource(source, options)
     .then(bin => {
-      debug("preprocess")
-      bin = preprocess(bin);
-      debug(" OK\n")
-
       debug("decode")
       const ast = decode(bin, decoderOpts);
       debug(" OK\n")
