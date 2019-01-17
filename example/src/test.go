@@ -1,11 +1,8 @@
 package main
 
-import "log"
+import "syscall/js"
 
 func main() {
-	log.Println("Called main!")
-}
-
-func foo() {
-	log.Println("Called foo!")
+	alert := js.Global().Get("alert")
+	alert.Invoke("Hi from Golang!")
 }
