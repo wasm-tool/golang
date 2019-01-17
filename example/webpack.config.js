@@ -13,7 +13,8 @@ module.exports = {
         test: /\.go$/,
         loader: "../loader",
         options: {
-          GOROOT: "/home/sven/Documents/golang/go"
+          GOROOT: process.env["GOROOT"],
+          GOPATH: process.env["GOPATH"]
         }
       }
     ]

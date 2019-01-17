@@ -70,7 +70,7 @@ const generateUserWrapperLoader = exportNames => wasm_exec + `
 const getGoBin = root => `${root}/bin/go`;
 
 function compileSource(source, {GOROOT, GOPATH}) {
-  const inFile = '.'; // current directory
+  const inFile = './src'; // source directory
   const outFile = 'tmp.wasm';
 
   const bin = getGoBin(GOROOT);
@@ -80,7 +80,7 @@ function compileSource(source, {GOROOT, GOPATH}) {
       GOROOT,
       GOPATH,
       GOARCH: 'wasm',
-      GOOS: 'js',
+      GOOS: 'js'
     },
   };
 
@@ -90,9 +90,10 @@ function compileSource(source, {GOROOT, GOPATH}) {
     inFile
   ];
 
-  return new Promise((resolve, reject) => execFile(bin, args, options, (stdout, stderr) => {
-    if (stderr !== '') {
-      return reject(stderr);
+  return new Promise((resolve, reject) => execFile(bin, args, options, (error, stdout, stderr) => {
+    if (error) {
+      console.log(stderr);
+      return reject(error);
     }
 
     const out = readFileSync(outFile, null);
@@ -108,7 +109,7 @@ module.exports = function(source) {
   const callback = this.async();
   const options = this.query;
 
-  compileSource(source, options)
+  return compileSource(source, options)
     .then(bin => {
       debug("preprocess")
       bin = preprocess(bin);
@@ -131,8 +132,7 @@ module.exports = function(source) {
       debug(" OK\n")
     })
     .catch(e => {
-      this.emitError(e)
-      throw e;
+      callback(e, "");
     });
 };
 

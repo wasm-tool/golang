@@ -28,7 +28,7 @@ module.exports = {
         test: /\.go$/,
         loader: "@wasm-tool/golang",
         options: {
-          GOROOT: "~/go",
+          GOROOT: process.env["GOROOT"],
           GOPATH: process.env["GOPATH"]
         }
       }
