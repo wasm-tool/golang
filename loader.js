@@ -9,6 +9,9 @@ const {shrinkPaddedLEB128} = require('@webassemblyjs/wasm-opt');
 
 const wasm_exec = readFileSync(join(__dirname, './wasm_exec.js'));
 
+const LOADER_FILE = '/tmp/wasm-loader.js';
+const WASM_FILE = '/tmp/module.wasm';
+
 const decoderOpts = {
   ignoreCodeSection: true,
   ignoreDataSection: true,
@@ -36,28 +39,29 @@ function transformWasm(ast, bin) {
     ModuleImport({node}) {
 
       if (node.module === 'go') {
-        node.module = '/tmp/wasm-loader.js';
+        node.module = LOADER_FILE;
       }
     }
   });
 }
 
-const generateWasmWrapperLoader = () => wasm_exec + `
+const generateJSToWasmWrapperLoader = () => `
+  ${wasm_exec}
+
   window._go = new Go();
+  window._go.argv = [];
+  window._go.env = [];
+  window._go.exit = () => console.log('EXIT CALLED');
 
   module.exports = window._go.importObject.go;
 `;
 
-const generateUserWrapperLoader = exportNames => wasm_exec + `
-  const instanceExports = require('/tmp/module.wasm');
-
-  window._go.argv = [];
-  window._go.env = [];
-  window._go.exit = () => console.log('EXIT CALLED');
-  window._go.run({ exports: instanceExports })
+const generateWasmToJSWrapperLoader = exportNames => `
+  import * as exports from "${WASM_FILE}";
+  window._go.run({ exports });
 
   ${exportNames.map(
-    name => 'export const ' + name + ' = instanceExports.' + name
+    name => 'export const ' + name + ' = exports.' + name
   ).join(';')}
 `;
 
@@ -111,14 +115,15 @@ module.exports = function(source) {
 
       debug("transform")
       bin = transformWasm(ast, bin);
-      writeFileSync('/tmp/module.wasm', new Buffer(bin));
+      writeFileSync(WASM_FILE, new Buffer(bin));
       debug(" OK\n")
 
       debug("codegen")
       const info = inspect(ast);
-      callback(null, generateUserWrapperLoader(info.exports));
+      console.log(generateWasmToJSWrapperLoader(info.exports));
+      callback(null, generateWasmToJSWrapperLoader(info.exports));
 
-      writeFileSync('/tmp/wasm-loader.js', generateWasmWrapperLoader());
+      writeFileSync(LOADER_FILE, generateJSToWasmWrapperLoader());
       debug(" OK\n")
     })
     .catch(e => {
